@@ -382,7 +382,7 @@ class BagTemplate(_Template):
         bag = self._get_struct(name, parent)
         while data:
             match = self._decode_one(data, bag, little_endian=little_endian)
-            data = data[len(match['0']):]
+            data = data[len(match[match.len - 1]):]
         return bag
 
     def _decode_one(self, data, bag, little_endian=False):
