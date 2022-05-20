@@ -13,6 +13,7 @@
 #  limitations under the License.
 
 from math import ceil
+import copy
 import re
 
 from Rammbock.message import (Field, Union, Message, Header, List, Struct,
@@ -137,6 +138,17 @@ class Protocol(_Template):
         self.pdu = None
         self.little_endian = little_endian
         self.library = library
+
+    def __deepcopy__(self, memo):
+        cls = self.__class__
+        result = cls.__new__(cls)
+        memo[id(self)] = result
+        for k, v in self.__dict__.items():
+            if k == 'library':
+                setattr(result, k, v)
+            else:
+                setattr(result, k, copy.deepcopy(v, memo))
+        return result
 
     def header_length(self):
         try:
