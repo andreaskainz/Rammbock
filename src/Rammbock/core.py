@@ -53,6 +53,15 @@ class RammbockCore(object):
         self._message_templates = {}
         self.reset_handler_messages()
 
+    def __deepcopy__(self, memo):
+        cls = self.__class__
+        result = cls.__new__(cls)
+        memo[id(self)] = result
+        for k, v in self.__dict__.items():
+            if k not in ('_clients', '_servers'):
+                setattr(result, k, copy.deepcopy(v, memo))
+        return result
+
     @property
     def _current_container(self):
         return self._message_stack[-1]
