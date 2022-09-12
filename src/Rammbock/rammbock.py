@@ -65,59 +65,59 @@ class Rammbock(RammbockCore):
 
     ROBOT_LIBRARY_VERSION = VERSION
 
-    def u8(self, name, value=None, align=None):
+    def u8(self, name, value=None, align=None, is_optional=None):
         """Add an unsigned 1 byte integer field to template.
 
         This is an convenience method that simply calls `Uint` keyword with predefined length."""
-        self.uint(1, name, value, align)
+        self.uint(1, name, value, align=align, is_optional=is_optional)
 
-    def u16(self, name, value=None, align=None):
+    def u16(self, name, value=None, align=None, is_optional=None):
         """Add an unsigned 2 byte integer field to template.
 
         This is an convenience method that simply calls `Uint` keyword with predefined length."""
-        self.uint(2, name, value, align)
+        self.uint(2, name, value, align=align, is_optional=is_optional)
 
-    def u24(self, name, value=None, align=None):
+    def u24(self, name, value=None, align=None, is_optional=None):
         """Add an unsigned 3 byte integer field to template.
 
         This is an convenience method that simply calls `Uint` keyword with predefined length."""
-        self.uint(3, name, value, align)
+        self.uint(3, name, value, align=align, is_optional=is_optional)
 
-    def u32(self, name, value=None, align=None):
+    def u32(self, name, value=None, align=None, is_optional=None):
         """Add an unsigned 4 byte integer field to template.
 
         This is an convenience method that simply calls `Uint` keyword with predefined length."""
-        self.uint(4, name, value, align)
+        self.uint(4, name, value, align=align, is_optional=is_optional)
 
-    def u40(self, name, value=None, align=None):
+    def u40(self, name, value=None, align=None, is_optional=None):
         """Add an unsigned 5 byte integer field to template.
 
         This is an convenience method that simply calls `Uint` keyword with predefined length."""
-        self.uint(5, name, value, align)
+        self.uint(5, name, value, align=align, is_optional=is_optional)
 
-    def u64(self, name, value=None, align=None):
+    def u64(self, name, value=None, align=None, is_optional=None):
         """Add an unsigned 8 byte integer field to template.
 
         This is an convenience method that simply calls `Uint` keyword with predefined length."""
-        self.uint(8, name, value, align)
+        self.uint(8, name, value, align=align, is_optional=is_optional)
 
-    def u128(self, name, value=None, align=None):
+    def u128(self, name, value=None, align=None, is_optional=None):
         """Add an unsigned 16 byte integer field to template.
 
         This is an convenience method that simply calls `Uint` keyword with predefined length."""
-        self.uint(16, name, value, align)
+        self.uint(16, name, value, align=align, is_optional=is_optional)
 
-    def i8(self, name, value=None, align=None):
+    def i8(self, name, value=None, align=None, is_optional=None):
         """Add an 1 byte integer field to template.
 
         This is an convenience method that simply calls `Int` keyword with predefined length."""
-        self.int(1, name, value, align)
+        self.int(1, name, value, align=align, is_optional=is_optional)
 
-    def i32(self, name, value=None, align=None):
+    def i32(self, name, value=None, align=None, is_optional=None):
         """Add an 32 byte integer field to template.
 
         This is an convenience method that simply calls `Int` keyword with predefined length."""
-        self.int(4, name, value, align)
+        self.int(4, name, value, align=align, is_optional=is_optional)
 
     def array(self, size, type, name, *parameters):
         """Define a new array of given `size` and containing fields of type `type`.

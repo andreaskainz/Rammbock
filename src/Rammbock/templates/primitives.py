@@ -20,6 +20,7 @@ import re
 from Rammbock.message import Field, BinaryField
 from Rammbock.binary_tools import to_bin_of_length, to_0xhex, to_tbcd_binary, \
     to_tbcd_value, to_bin, to_twos_comp, to_int
+from Rammbock.utils import parse_bool
 from robot.libraries.BuiltIn import BuiltIn
 from robot.utils import PY3, is_bytes, py2to3
 
@@ -27,13 +28,15 @@ from robot.utils import PY3, is_bytes, py2to3
 @py2to3
 class _TemplateField(object):
 
-    def __init__(self, name, default_value):
+    def __init__(self, name, default_value, is_optional=None):
         self._set_default_value(default_value)
         self.name = name
+        self._is_optional = parse_bool(is_optional)
 
     has_length = True
     can_be_little_endian = False
     referenced_later = False
+    _is_optional = False
 
     def get_static_length(self):
         if not self.length.static:
@@ -50,6 +53,8 @@ class _TemplateField(object):
 
     def encode(self, paramdict, parent, name=None, little_endian=False):
         value = self._get_element_value_and_remove_from_params(paramdict, name)
+        if value is None and not self.referenced_later and self._is_optional:
+            return DeactivatedField(self)
         if not value and self.referenced_later:
             return PlaceHolderField(self)
         return self._to_field(name, value, parent, little_endian=little_endian)
@@ -143,8 +148,9 @@ class _TemplateField(object):
         return name or self.name or self.type
 
     def _raise_error_if_no_value(self, value, parent):
-        if value in (None, ''):
-            raise AssertionError('Value of %s not set' % self._get_recursive_name(parent))
+        if not self._is_optional and value in (None, ''):
+            raise AssertionError('Required value of %s not set (is_optional: %s)' % (self._get_recursive_name(parent),
+                    self._is_optional))
 
     def _get_recursive_name(self, parent):
         if not parent:
@@ -164,13 +170,25 @@ class PlaceHolderField(object):
         self.template = template
 
 
+class DeactivatedField(object):
+
+    _type = 'deactivated'
+    _parent = None
+
+    def __init__(self, template):
+        self.template = template
+
+    def __len__(self):
+        return 0
+
+
 class UInt(_TemplateField):
 
     type = 'uint'
     can_be_little_endian = True
 
-    def __init__(self, length, name, default_value=None, align=None):
-        _TemplateField.__init__(self, name, default_value)
+    def __init__(self, length, name, default_value=None, align=None, is_optional=None):
+        _TemplateField.__init__(self, name, default_value, is_optional=is_optional)
         self.length = Length(length, align)
 
     def _encode_value(self, value, message, little_endian=False):
@@ -186,8 +204,8 @@ class Int(UInt):
     type = 'int'
     can_be_little_endian = True
 
-    def __init__(self, length, name, default_value=None, align=None):
-        UInt.__init__(self, length, name, default_value, align)
+    def __init__(self, length, name, default_value=None, align=None, is_optional=None):
+        UInt.__init__(self, length, name, default_value, align, is_optional=is_optional)
 
     def _get_int_value(self, message, value):
         bin_len = self.length.decode_lengths(message)[0] * 8
@@ -208,8 +226,8 @@ class Char(_TemplateField):
 
     type = 'chars'
 
-    def __init__(self, length, name, default_value=None, terminator=None):
-        _TemplateField.__init__(self, name, default_value)
+    def __init__(self, length, name, default_value=None, terminator=None, is_optional=None):
+        _TemplateField.__init__(self, name, default_value, is_optional=is_optional)
         self._terminator = to_bin(terminator)
         self.length = Length(length)
 
@@ -248,8 +266,8 @@ class Binary(_TemplateField):
 
     type = 'bin'
 
-    def __init__(self, length, name, default_value=None):
-        _TemplateField.__init__(self, name, default_value)
+    def __init__(self, length, name, default_value=None, is_optional=None):
+        _TemplateField.__init__(self, name, default_value, is_optional=is_optional)
         self.length = Length(length)
         if not self.length.static:
             raise AssertionError('Binary field length must be static. Length: %s' % length)
@@ -277,8 +295,8 @@ class TBCD(_TemplateField):
 
     type = 'tbcd'
 
-    def __init__(self, size, name, default_value):
-        _TemplateField.__init__(self, name, default_value)
+    def __init__(self, size, name, default_value, is_optional=None):
+        _TemplateField.__init__(self, name, default_value, is_optional=is_optional)
         self.length = Length(size)
 
     def _encode_value(self, value, message, little_endian=False):

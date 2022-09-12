@@ -16,6 +16,7 @@ from math import ceil
 from .binary_tools import to_0xhex, to_binary_string_of_length, \
     to_bin_of_length, to_tbcd_value, to_tbcd_binary, from_twos_comp
 from .ordered_dict import OrderedDict
+from .utils import parse_bool
 from robot.libraries.BuiltIn import BuiltIn
 from robot.utils import py2to3, unic
 
@@ -24,6 +25,7 @@ from robot.utils import py2to3, unic
 class _StructuredElement(object):
 
     _type = None
+    _is_deactivated = False
 
     def __init__(self, name):
         self._name = name
@@ -122,12 +124,13 @@ class Struct(_StructuredElement):
 
     _type = 'Struct'
 
-    def __init__(self, name, type_name, align=1):
+    def __init__(self, name, type_name, align=1, is_optional=None):
         self._name = name
         self._type = type_name
         self._fields = OrderedDict()
         self._parent = None
         self._align = align
+        self._is_optional = parse_bool(is_optional)
 
     def __len__(self):
         result = sum(len(field) for field in self._fields.values())

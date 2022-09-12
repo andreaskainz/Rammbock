@@ -27,6 +27,7 @@ from .templates import (Protocol, UInt, Int, PDU, MessageTemplate, Char, Binary,
                         BinaryContainerTemplate, ConditionalTemplate,
                         TBCDContainerTemplate)
 from .binary_tools import to_0xhex, to_bin
+from .utils import parse_bool
 
 from robot.libraries.BuiltIn import BuiltIn
 from robot.utils import is_string, PY3
@@ -681,24 +682,29 @@ class RammbockCore(object):
             self._register_receive(node, self._current_container.name, name, error=e.args[0])
             raise e
 
-    def uint(self, length, name, value=None, align=None):
+    def uint(self, length, name, value=None, align=None, is_optional=None):
         """Add an unsigned integer to template.
 
         `length` is given in bytes and `value` is optional. `align` can be used
-        to align the field to longer byte length.
+        to align the field to longer byte length. If `is_optional` is set to True
+        it indicates that the item may be omitted.
 
         Examples:
         | uint | 2 | foo |
         | uint | 2 | foo | 42 |
         | uint | 2 | fourByteFoo | 42 | align=4 |
         """
-        self._add_field(UInt(length, name, value, align=align))
+        if is_optional is None:
+            is_optional = self._current_container._is_optional
+        self._add_field(UInt(length, name, value, align=align, is_optional=is_optional))
 
-    def int(self, length, name, value=None, align=None):
+    def int(self, length, name, value=None, align=None, is_optional=None):
         """Add an signed integer to template.
 
         `length` is given in bytes and `value` is optional. `align` can be used
-        to align the field to longer byte length.
+        to align the field to longer byte length. If `is_optional` is set to True
+        it indicates that the item may be omitted.
+
         Signed integer uses twos-complement with bits numbered in big-endian.
 
         Examples:
@@ -706,9 +712,11 @@ class RammbockCore(object):
         | int | 2 | foo | 42 |
         | int | 2 | fourByteFoo | 42 | align=4 |
         """
-        self._add_field(Int(length, name, value, align=align))
+        if is_optional is None:
+            is_optional = self._current_container._is_optional
+        self._add_field(Int(length, name, value, align=align, is_optional=is_optional))
 
-    def chars(self, length, name, value=None, terminator=None):
+    def chars(self, length, name, value=None, terminator=None, is_optional=None):
         """Add a char array to template.
 
         `length` is given in bytes and can refer to earlier numeric fields in
@@ -718,6 +726,8 @@ class RammbockCore(object):
         `value` is optional.
         `value` could be either a "String" or a "Regular Expression" and
         if it is a Regular Expression it must be prefixed by 'REGEXP:'.
+
+        If `is_optional` is set to True it indicates that the item may be omitted.
 
         Examples:
         | chars | 16 | field | Hello World! |
@@ -729,7 +739,9 @@ class RammbockCore(object):
         | chars | * | field | REGEXP:^{[a-zA-Z ]+}$ |
         """
 
-        self._add_field(Char(length, name, value, terminator))
+        if is_optional is None:
+            is_optional = self._current_container._is_optional
+        self._add_field(Char(length, name, value, terminator, is_optional=is_optional))
 
     def _add_field(self, field):
         if self._current_container.is_saved:
@@ -747,6 +759,8 @@ class RammbockCore(object):
         sending, the struct length can refer to other message field which will
         then be set dynamically.
 
+        If `is_optional` is set to True it indicates that the item may be omitted.
+
         Examples:
         | New struct | Pair | myPair |
         | u8     | first |
@@ -754,8 +768,13 @@ class RammbockCore(object):
         | End Struct |
         """
         configs, parameters, _ = self._get_parameters_with_defaults(parameters)
+        is_optional = parse_bool(configs.get('is_optional'))
+        if is_optional is None:
+            is_optional = self._current_container._is_optional
         self._add_struct_name_to_params(name, parameters)
-        self._message_stack.append(StructTemplate(type, name, self._current_container, parameters, length=configs.get('length'), align=configs.get('align')))
+        self._message_stack.append(StructTemplate(type, name, self._current_container,
+            parameters, length=configs.get('length'),
+            align=configs.get('align'), is_optional=is_optional))
 
     def _add_struct_name_to_params(self, name, parameters):
         for param_key in parameters.keys():

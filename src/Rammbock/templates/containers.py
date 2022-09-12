@@ -26,9 +26,13 @@ from Rammbock.binary_tools import (to_binary_string_of_length, to_bin,
                                    to_tbcd_value, to_tbcd_binary)
 from Rammbock.condition_parser import ConditionParser
 from Rammbock.logger import logger
+from Rammbock.utils import parse_bool
 
 
 class _Template(object):
+
+    _is_optional = False
+    _is_deactivated = False
 
     def __init__(self, name, parent):
         self.parent = parent
@@ -93,7 +97,8 @@ class _Template(object):
             # TODO: clean away this ugly hack that makes it possible to skip PDU
             # (now it is a 0 length place holder in header)
             if encoded:
-                struct[field.name] = encoded
+                if not getattr(encoded, '_is_deactivated', False):
+                    struct[field.name] = encoded
         self._check_params_empty(params, self.name)
 
     def decode(self, data, parent=None, name=None, little_endian=False):
@@ -273,12 +278,13 @@ class StructTemplate(_Template):
 
     has_length = False
 
-    def __init__(self, type, name, parent, parameters=None, length=None, align=None):
+    def __init__(self, type, name, parent, parameters=None, length=None, align=None, is_optional=None):
         self._parameters = parameters or {}
         self.type = type
         if length:
             self._set_length(length)
         self._align = int(align or 1)
+        self._is_optional = parse_bool(is_optional)
         _Template.__init__(self, name, parent)
 
     def _set_length(self, length):
@@ -304,11 +310,21 @@ class StructTemplate(_Template):
             length, aligned_length = self.length.find_length_and_set_if_necessary(parent, len(struct))
             if len(struct) != length:
                 raise AssertionError('Length of struct %s does not match defined length. defined length:%s Struct:\n%s' % (self.name, length, repr(struct)))
+        if len(struct._fields) == 0:
+            self._deactivate_all_optional_ancestors(struct)
         return struct
+
+    def _deactivate_all_optional_ancestors(self, struct):
+        try:
+            if struct and struct._is_optional:
+                struct._is_deactivated = True
+                self._deactivate_all_optional_ancestors(struct._parent)
+        except KeyError:
+            pass
 
     # TODO: Cleanup setting the parent to constructor of message -elements
     def _get_struct(self, name, parent):
-        struct = Struct(name or self.name, self.type, align=self._align)
+        struct = Struct(name or self.name, self.type, align=self._align, is_optional=self._is_optional)
         struct._parent = parent
         return struct
 
